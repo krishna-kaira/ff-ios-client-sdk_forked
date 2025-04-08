@@ -71,15 +71,21 @@ public final class CfCache: StorageRepositoryProtocol {
     cache = [:]
   }
 
-  private func saveToDisk<Value: Codable>(
-    _ feature: Value, withName name: String, using fileManager: FileManager = .default
-  ) throws {
-    guard let url = makeURL(forFileNamed: name) else {
-      throw CFError.cacheError(.invalidDirectory)
+    private func saveToDisk<Value: Codable>(
+        _ feature: Value, withName name: String, using fileManager: FileManager = .default
+    ) throws {
+        guard let url = makeURL(forFileNamed: name) else {
+            throw CFError.cacheError(.invalidDirectory)
+        }
+        let data = try JSONEncoder().encode(feature)
+        DispatchQueue.global(qos: .background).async {
+            do {
+                try data.write(to: url, options: .atomic)
+            } catch {
+                CfCache.log.error("ERROR: Failed to write to disk path: \(url.path)")
+            }
+        }
     }
-    let data = try! JSONEncoder().encode(feature)
-    try data.write(to: url, options: .atomic)
-  }
 
   private func readFromDisk<Value: Codable>(
     _ name: String, using fileManager: FileManager = .default
